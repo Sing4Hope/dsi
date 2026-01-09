@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <title>DSI – Interne Website</title>
+  <meta charset="UTF-8">
+  <title>DSI – Demo Website</title>
   <style>
     body { font-family: Arial; background:#f4f4f4; margin:0; }
     header { background:#222; color:#fff; padding:15px; }
     section { padding:20px; }
-    input, textarea, button {
-      width:100%; padding:8px; margin:5px 0;
-    }
+    input, textarea, button { width:100%; padding:8px; margin:5px 0; }
     table { width:100%; border-collapse:collapse; background:#fff; }
     th, td { border:1px solid #ccc; padding:8px; }
   </style>
@@ -20,15 +18,16 @@
   <h2>DSI – Dienst Speciale Interventies</h2>
 </header>
 
-<section id="login">
+<section id="loginSection">
   <h3>Login</h3>
-  <input id="user" placeholder="Gebruikersnaam">
-  <input id="pass" type="password" placeholder="Wachtwoord">
+  <input id="username" placeholder="Gebruikersnaam">
+  <input id="password" type="password" placeholder="Wachtwoord">
   <button onclick="login()">Login</button>
+  <p id="loginMsg" style="color:red;"></p>
 </section>
 
-<section id="dashboard" style="display:none">
-  <h3>VTA Aanmaken</h3>
+<section id="dashboardSection" style="display:none">
+  <h3>Nieuwe VTA</h3>
   <input id="person" placeholder="Persoon">
   <input id="status" placeholder="Status">
   <textarea id="notes" placeholder="Notities"></textarea>
@@ -47,52 +46,58 @@
 let token = "";
 
 function login() {
+  const user = document.getElementById("username").value;
+  const pass = document.getElementById("password").value;
+
   fetch("/api/login", {
     method: "POST",
     headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      username: user.value,
-      password: pass.value
-    })
+    body: JSON.stringify({username:user, password:pass})
   })
-  .then(r => r.json())
+  .then(r => {
+    if(r.status === 200) return r.json();
+    else throw new Error("Login mislukt");
+  })
   .then(d => {
     token = d.token;
-    login.style.display = "none";
-    dashboard.style.display = "block";
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("dashboardSection").style.display = "block";
     loadVTAs();
+  })
+  .catch(e => {
+    document.getElementById("loginMsg").innerText = e.message;
   });
 }
 
 function loadVTAs() {
-  fetch("/api/vtas", {
-    headers: { Authorization: token }
-  })
+  fetch("/api/vtas", { headers: { Authorization: token } })
   .then(r => r.json())
   .then(vtas => {
-    vtaTable.innerHTML = vtas.map(v =>
-      `<tr>
-        <td>${v.id}</td>
-        <td>${v.person}</td>
-        <td>${v.status}</td>
-      </tr>`
-    ).join("");
+    document.getElementById("vtaTable").innerHTML =
+      vtas.map(v =>
+        `<tr><td>${v.id}</td><td>${v.person}</td><td>${v.status}</td></tr>`
+      ).join("");
   });
 }
 
 function createVTA() {
+  const person = document.getElementById("person").value;
+  const status = document.getElementById("status").value;
+  const notes = document.getElementById("notes").value;
+
   fetch("/api/vtas", {
-    method: "POST",
-    headers: {
+    method:"POST",
+    headers:{
       "Content-Type":"application/json",
       Authorization: token
     },
-    body: JSON.stringify({
-      person: person.value,
-      status: status.value,
-      notes: notes.value
-    })
-  }).then(loadVTAs);
+    body: JSON.stringify({person,status,notes})
+  }).then(() => {
+    document.getElementById("person").value = "";
+    document.getElementById("status").value = "";
+    document.getElementById("notes").value = "";
+    loadVTAs();
+  });
 }
 </script>
 
