@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>DSI – Interne Website</title>
+  <style>
+    body { font-family: Arial; background:#f4f4f4; margin:0; }
+    header { background:#222; color:#fff; padding:15px; }
+    section { padding:20px; }
+    input, textarea, button {
+      width:100%; padding:8px; margin:5px 0;
+    }
+    table { width:100%; border-collapse:collapse; background:#fff; }
+    th, td { border:1px solid #ccc; padding:8px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>DSI – Dienst Speciale Interventies</h2>
+</header>
+
+<section id="login">
+  <h3>Login</h3>
+  <input id="user" placeholder="Gebruikersnaam">
+  <input id="pass" type="password" placeholder="Wachtwoord">
+  <button onclick="login()">Login</button>
+</section>
+
+<section id="dashboard" style="display:none">
+  <h3>VTA Aanmaken</h3>
+  <input id="person" placeholder="Persoon">
+  <input id="status" placeholder="Status">
+  <textarea id="notes" placeholder="Notities"></textarea>
+  <button onclick="createVTA()">Aanmaken</button>
+
+  <h3>VTA Overzicht</h3>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Persoon</th><th>Status</th></tr>
+    </thead>
+    <tbody id="vtaTable"></tbody>
+  </table>
+</section>
+
+<script>
+let token = "";
+
+function login() {
+  fetch("/api/login", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      username: user.value,
+      password: pass.value
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    token = d.token;
+    login.style.display = "none";
+    dashboard.style.display = "block";
+    loadVTAs();
+  });
+}
+
+function loadVTAs() {
+  fetch("/api/vtas", {
+    headers: { Authorization: token }
+  })
+  .then(r => r.json())
+  .then(vtas => {
+    vtaTable.innerHTML = vtas.map(v =>
+      `<tr>
+        <td>${v.id}</td>
+        <td>${v.person}</td>
+        <td>${v.status}</td>
+      </tr>`
+    ).join("");
+  });
+}
+
+function createVTA() {
+  fetch("/api/vtas", {
+    method: "POST",
+    headers: {
+      "Content-Type":"application/json",
+      Authorization: token
+    },
+    body: JSON.stringify({
+      person: person.value,
+      status: status.value,
+      notes: notes.value
+    })
+  }).then(loadVTAs);
+}
+</script>
+
+</body>
+</html>
